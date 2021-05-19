@@ -6,7 +6,7 @@ Files:
 1. HTML file (open on a browser)
 
 Instruction: 
-1. Log in the FHIR serve (esacuser/foresaconly)
+1. Log in the FHIR server (esacuser/foresaconly)
 2. Enter patient's ID
 3. Click 'Assess Risk'
 4. A new window should pop-up showing the assessment results. 
