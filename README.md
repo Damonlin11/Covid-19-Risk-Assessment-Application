@@ -7,7 +7,7 @@ Files:
 
 Instruction: 
 1. Log in the FHIR serve (esacuser/foresaconly)
-2. Enter patien's ID
+2. Enter patient's ID
 3. Click 'Assess Risk'
 4. A new window should pop-up showing the assessment results. 
 5. A button on the bottom of the page allows user to subscribe the updates of vaccination
