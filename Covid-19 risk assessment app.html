@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Final Project - intake system</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <script
+    type="text/javascript"
+    src="/js/lib/dummy.js"
+    
+  ></script>
+
+    <link rel="stylesheet" type="text/css" href="/css/result-light.css">
+
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.min.js"></script>
+      <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css">
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
+  <style id="compiled-css" type="text/css">
+      
+    /* EOS */
+  </style>
+
+  <script id="insert"></script>
+
+
+</head>
+<body>
+    <html>
+
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous"> 
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsmart@3.1.0/dist/jsmart.min.js"></script>
+
+<script type = "text/javascript">
+
+// patient w/ visit: 6e894785-8d03-4ec3-8bef-cd4b857ab14d
+// patient w/ medication: 10aee52d-10a2-41c6-94f6-c3b8ec43e12e
+// patient w/ procedure: 10aee52d-10a2-41c6-94f6-c3b8ec43e12e
+// bac1ddd5-0f27-4ace-8661-851fa5dd9ff7
+// 258d33c5-1398-44d8-9e08-232fa9bb542c
+// 3b53de55-4fe1-4ffc-a2f4-df4c33133037
+// d7768b50-c1d9-4d94-928e-fc1748c90306
+// 3cd92578-5d4c-4839-a5ef-55df81d4bbc4
+// 6e894785-8d03-4ec3-8bef-cd4b857ab14d   
+// 10aee52d-10a2-41c6-94f6-c3b8ec43e12e 
+// 87d0bb01-c7c0-48e7-b96c-4521e30d51e7
+// 1c48c157-d632-409e-9e79-634b9755b41e
+
+var patient_id = '';
+var logged_in = false;
+let race_s  = '';
+let gender_s = '';
+let age_s = 0;
+let message = '';
+$(document).ready( function() {
+
+  function isLoggedIn() {
+    // Check if user is logged in at least an hour ago
+    let fhir_login = localStorage.getItem("fhir_login");
+    if (fhir_login) {
+      logged_in = true;
+      username = JSON.parse(fhir_login).username;
+      password = JSON.parse(fhir_login).password;
+      login_time = JSON.parse(fhir_login).login_time;
+      let time_now = Date.now();
+      // Logoff after 60 mins
+      if ( time_now < (login_time +   60 * 60 * 1000 )) {
+        console.log("Still logged in");
+        $("#login_form").hide();
+        $("#login_status").html("Logged in as <em>" + username + "</em>");
+        $("#main_body").show();
+        $("#demographics_card").hide();
+      } else {
+        $("#login_form").show();
+        logged_in = false;
+        username = "";
+        password = "";
+        $("#login_status").html("");
+        $("#main_body").hide();
+      }
+    } else {
+      // First time using the system, no cookie
+      logged_in = false;
+      $("#login_form").show();
+      $("#login_status").html("");
+      $("#main_body").hide();
+
+    }
+  }
+
+  isLoggedIn();
+
+  $("#login_btn").click(function() {
+    console.log("trying to login to FHIR ");
+    username = $("#login_id").val();
+    password = $("#password").val();
+    // Run a patient query with this value
+    $.ajax({
+      type: 'GET',
+      beforeSend: function(xhr) { 
+        xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },
+      url: 'https://hypatia.esacinc.com/fhir/fhir/Patient',
+      success: function(data, textStatus, request){
+        console.log(data.total);
+        logged_in = true;
+        $("#login_form").hide();
+        // Save the login status so user does not need to login again for 24 hours
+        let time_now = Date.now();
+        localStorage.setItem("fhir_login", 
+                             JSON.stringify({"username": username, 
+                                             "password": password,
+                                             "login_time": time_now}));
+        $("#login_status").html("Logged In as <em>" + username + "</em>");
+        $("#main_body").show();
+        $("#demographics_card").hide();
+      },
+      error: function(data, textStatus, request) {
+        console.log("Failed to log in!");
+        username = '';
+        password = '';
+        logged_in = false;
+        $("#login_msg").text("Incorrect login/password, please try again");
+        $("#login_status").text("Plase log in to continue");
+        $("#main_body").hide();
+
+      }
+
+    });
+
+  }); // end CLICK function
+
+  $("#find_patient_btn").click(function(){
+    patient_id = $("#patient_id").val();
+    $("#detail_card").hide();
+    if (patient_id.length < 20 ) {
+      alert("Please enter a valid patient id for this system");
+      return;
+    }
+///1c48c157-d632-409e-9e79-634b9755b41e
+
+    
+   console.log("Finding patient id:" + patient_id);
+   
+ let medical_condition = []
+ let medical_condition_str = ""
+ 
+    
+  //function get_procedures() {
+    //return new Promise((resolve, reject) => {
+      $.ajax({
+        type: 'GET',
+        async: false,
+        beforeSend: function(xhr) { 
+          xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },
+        url: 'https://hypatia.esacinc.com/fhir/fhir/Procedure?subject='+patient_id + '&_count=100',
+        success: function(data, textStatus, request){
+          console.log("Got procedure")
+          if (data.entry){
+          for (let i = 0; i < data.entry.length; i++ ) {
+            medical_condition.push(data.entry[i].resource.code.text.toLowerCase())
+            medical_condition_str = medical_condition_str + " " + data.entry[i].resource.code.text.toLowerCase()
+          }
+          console.log(medical_condition.length)
+          console.log(medical_condition)
+          //return;
+         }
+          // console.log(data);
+          //resolve(data);
+        },
+        error: function(data, textStatus, request) {
+          //console.log(data);
+          if (data.status === 404) {
+            alert("No such Procedure found");
+          } else {
+            alert("Error querying FHIR data ", data);
+          }
+        }
+      });
+    //});
+  //}
+  
+  //function get_encounters() {
+    //return new Promise((resolve, reject) => {
+      $.ajax({
+        type: 'GET',
+        async: false,
+        beforeSend: function(xhr) { 
+          xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },
+        url: 'https://hypatia.esacinc.com/fhir/fhir/Encounter?subject='+patient_id + '&_count=100',
+        success: function(data, textStatus, request){
+          console.log("Got encounter")
+          if (data.entry){
+          for (let x = 0; x < data.entry.length; x++ ) {
+            medical_condition.push(data.entry[x].resource.type[0].text.toLowerCase())
+            medical_condition_str = medical_condition_str + " " + data.entry[x].resource.type[0].text.toLowerCase()
+          }
+          console.log(medical_condition.length)
+          //return;
+         }
+          //console.log(data);
+          //resolve(data);
+        },
+        error: function(data, textStatus, request) {
+          //console.log(data);
+          if (data.status === 404) {
+            alert("No such Encounter found");
+          } else {
+            alert("Error querying FHIR data ", data);
+          }
+        }
+      });
+    //});
+  //}
+   
+  //function get_observations() {
+   // return new Promise((resolve, reject) => {
+      $.ajax({
+        type: 'GET',
+        async: false,
+        beforeSend: function(xhr) { 
+          xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },
+        url: 'https://hypatia.esacinc.com/fhir/fhir/Observation?subject='+patient_id + '&_count=100',
+        success: function(data, textStatus, request){
+        	console.log("Got observation")
+          if (data.entry){
+          for (let y = 0; y < data.entry.length; y++ ) {
+            medical_condition.push(data.entry[y].resource.code.text.toLowerCase())
+            medical_condition_str = medical_condition_str + " " + data.entry[y].resource.code.text.toLowerCase()
+          }
+          console.log(medical_condition.length)
+          //return;
+         }
+          //console.log(data);
+          //resolve(data);
+        },
+        error: function(data, textStatus, request) {
+          //console.log(data);
+          if (data.status === 404) {
+            alert("No such Observation found");
+          } else {
+            alert("Error querying FHIR data ", data);
+          }
+        }
+      });
+   // });
+  //}
+   
+  //function get_conditions() {
+   // return new Promise((resolve, reject) => {
+      $.ajax({
+        type: 'GET',
+        async: false,
+        beforeSend: function(xhr) { 
+          xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },
+        url: 'https://hypatia.esacinc.com/fhir/fhir/Condition?subject='+patient_id + '&_count=100',
+        success: function(data, textStatus, request){
+          console.log("Got condition")
+          if (data.entry){
+          for (let j = 0; j < data.entry.length; j++ ) {
+            medical_condition.push(data.entry[j].resource.code.text.toLowerCase())
+            medical_condition_str = medical_condition_str + " " + data.entry[j].resource.code.text.toLowerCase()
+          }
+          console.log(medical_condition.length)
+          //console.log(medical_condition)
+          //return;
+         }
+          //console.log(data);
+          //resolve(data);
+        },
+        error: function(data, textStatus, request) {
+          //console.log(data);
+          if (data.status === 404) {
+            alert("No such Condition found");
+          } else {
+            alert("Error querying FHIR data ", data);
+          }
+        }
+      });
+   // });
+  //}
+  
+  
+  //function get_demographic() {
+    //return new Promise((resolve, reject) => {
+      $.ajax({
+        type: 'GET',
+        async: false,
+        beforeSend: function(xhr) { 
+          xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },
+        url: 'https://hypatia.esacinc.com/fhir/fhir/Patient/' + patient_id,
+        success: function(data, textStatus, request){
+          console.log("Got demographic")
+          if (data){
+          $("#demographics_card").show();
+          let m1 = new moment();
+          let m2 = new moment(data.birthDate);
+          let age = m1-m2;
+          let demographics_txt = "ID: " + patient_id ;
+          demographics_txt += "<br>Name: " 
+          demographics_txt += data.name[0].given[0].replace(/[0-9]/g, '');
+          demographics_txt += " ";
+          demographics_txt += data.name[0].family.replace(/[0-9]/g, '');
+          demographics_txt += "<br>Gender: " + data.gender;
+          demographics_txt += "<br>Race: " + data.extension[0].extension[0].valueCoding.display;
+          demographics_txt += "<br>State: " + data.extension[4].valueAddress.state
+          demographics_txt += "<br> DOB: " + data.birthDate;
+          demographics_txt += "<br> Age: " + Math.round(age/(365*24*60*60*1000))
+
+          $("#demographics").html(demographics_txt);
+
+            var raw_template = document.getElementById('template').innerHTML;
+            var template = new jSmart(raw_template);
+
+            
+            let comorbidity = ['cancer', 'chronic kidney disease','chronic lung disease','chronic obstructive pulmonary disease', 'asthma', 'interstitial lung disease','cystic fibrosis','pulmonary hypertension','dementia','type one diabetes','type I diabetes', 'type two diabetes','type II diabetes','diabetes','mellitus','down syndrome','heart failure','coronary artery disease','cardiomyopathies', 'hypertension','hiv infection','immunocompromised state','weakened immune system','liver disease','overweight','obesity', 'pregnancy','sickle cell disease','thalassemia','current smoker', 'former smoker', 'solid organ transplant','blood stem cell transplant','stroke', 'cerebrovascular disease','cardiovascular','substance use disorders','immunocompromised','immunodeficiency','malignancy','malignant']
+            let comorb = []
+            for (let i = 0; i < comorbidity.length; i++){
+            	if (medical_condition_str.includes(comorbidity[i])){
+              	comorb.push(comorbidity[i])
+              }
+            }
+            
+            var output = template.fetch({
+              first_name: data.name[0].given[0].replace(/[0-9]/g, ''),
+              last_name: data.name[0].family.replace(/[0-9]/g, ''), 
+              gender: data.gender,
+              age: Math.round(age/(365*24*60*60*1000)),
+              current_date: new Date(),
+              race: data.extension[0].extension[0].valueCoding.display,
+              eth: data.extension[1].extension[0].valueCoding.display,
+              minority_groups: ["Black or African American", "Asian", "American Indians", "Alaska Natives", "Hispanic or Latino"],
+              medicalConditions: comorb
+
+            })
+            console.log(Math.round(age/(365*24*60*60*1000)))
+            console.log(data.extension[0].extension[0].valueCoding.display)
+            console.log(data.extension[1].extension[0].valueCoding.display)
+            //document.getElementById('message').innerHTML = output;
+
+          $("#results").html(output);
+          console.log(medical_condition.length)
+          console.log(medical_condition)
+          console.log(medical_condition_str)
+          //return;
+         }
+          // console.log(data);
+          //resolve(data);
+        },
+        error: function(data, textStatus, request) {
+          //console.log(data);
+          if (data.status === 404) {
+            alert("No such patient ID found");
+          } else {
+            alert("Error querying FHIR data ", data);
+          }
+        }
+      });
+      
+    //});
+  //}
+   
+  })
+      
+
+  $("#btn_subscribe").click(function() {
+  	patient_id = $("#patient_id").val();
+    let firstName
+    let lastName
+    let name
+    let gender
+    let state
+    let age
+    let phone
+    $.ajax({
+        type: 'GET',
+        async: false,
+        beforeSend: function(xhr) { 
+          xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },
+        url: 'https://hypatia.esacinc.com/fhir/fhir/Patient/' + patient_id,
+        success: function(data, textStatus, request){
+          console.log("Got demographic")
+          if (data){
+
+          firstName =  data.name[0].given[0].replace(/[0-9]/g, '');
+          lastName = data.name[0].family.replace(/[0-9]/g, '');
+          name = firstName + " " + lastName
+          gender = data.gender;
+          
+         	state = data.extension[4].valueAddress.state
+          let m1 = new moment();
+          let m2 = new moment(data.birthDate);
+          let m1_m2 = m1-m2;
+          age = Math.round(m1_m2/(365*24*60*60*1000))
+          phone = data.telecom[0].value.split("-").join("");
+
+          //return;
+         }
+
+        },
+        error: function(data, textStatus, request) {
+          //console.log(data);
+          if (data.status === 404) {
+            alert("No such patient ID found");
+          } else {
+            alert("Error querying FHIR data ", data);
+          }
+        }
+      });
+
+
+    //alert("Subscribe via TextIt");
+    var request = new XMLHttpRequest();
+    request.open('POST', 'http://chiron.esacinc.com:8888/https://api.textit.com/api/v2/contacts.json');
+    // I put "XMLHttpRequest" here, but you can use anything you want.
+    request.setRequestHeader('Content-Type', 'application/json');
+    request.setRequestHeader('Authorization', "Token beed8f7d344a9d0ce0a1deda1b675579e9161551")
+    request.onload = function() {
+    		//alert("Request from TextIt");
+        //alert(age)
+    		//alert(gender)
+    		//alert(name)
+       	alert(request.responseText);
+     };
+    request.send(JSON.stringify({
+     
+    "name": name,
+    "language": "eng",
+    "urns": ["tel:+1" + phone, "twitter:" + firstName],
+    //"groups": ["6685e933-26e1-4363-a468-8f7268ab63a9"],
+    "fields": {
+      "age": age,
+      "gender": gender,
+      "state": state,
+      "email": "email address",
+      "social": "twitter"
+    	}
+		
+}));
+  });
+  
+}); // end DOCUMENT.READY function
+
+
+</script>
+
+
+
+
+<script id="template" type="text/x-jsmart-tmpl">
+
+{$current_date}
+<br/>
+<br/>
+
+Dear 
+
+{if $gender == 'male'}Mr.{elseif $gender == 'female'} Ms. {else} {$first_name} {/if} {$last_name}, 
+<br />
+<br />
+
+
+Your risk of COVID-19 is assessed in terms of your age, race or ethnicity group, and medical conditions. Please see the following results:
+<br />
+
+<ol>
+{if $age >=45 && $age < 65}
+<br />
+<li>
+Since you are older than 45, you are <b>more likely to get severely ill</b> from COVID-19. According to CDC, more than 95% of COVID-19 deaths occur in people older than 45. 
+</li>
+
+{elseif $age >=65}
+<br />
+<li>
+Since you are older than 65, you are <b>more likely to get severely ill</b> from COVID-19. According to CDC, more than 80% of COVID-19 deaths occur in people over age 65.
+</li>
+{/if}
+
+{if $minority_groups.includes($race)}
+<br />
+<li>
+Since you are {$race}, a minority group, you are <b>more likely to get severely ill</b> from COVID-19. According to CDC, people from racial and ethnic minority groups are also dying from COVID-19 at younger ages.
+</li>
+{elseif $minority_groups.includes($eth)}
+<br />
+<li>
+Since you are {$eth}, a minority group, you are <b>more likely to get severely ill</b> from COVID-19. According to CDC, people from racial and ethnic minority groups are also dying from COVID-19 at younger ages.
+</li>
+{/if}
+
+{if $medicalConditions.length > 0}
+<br />
+<li>
+Since you have following medical condistions now or in the past, you are <b>more likely to get severely ill</b> from COVID-19.
+</li>
+  <ul>
+    {foreach $medicalConditions as $medicalCondition}
+      <li>
+        {$medicalCondition}
+      </li>
+    {/foreach}
+  </ul>
+<br>
+<b>Note</b>: as you have above medical condition(s), we suggest:
+<ul>
+<li>Continue your medicines.</li>
+<li>Follow your current treatment plan.</li>
+<li>Have at least a 30-day supply of prescription and non-prescription medicines.</li>
+<li>Call your healthcare provider if you have any concerns.</li>
+<ul>
+{/if}
+
+</ol>
+
+<br />
+
+{if $medicalConditions.length > 0 || $age >=45 || $minority_groups.includes($race)}
+As you have above risk factor(s), please <b>get a COVID-19 vaccine as soon as you can</b>. To get the vaccine information, please click the button below to subscribe.
+<br />
+<br />
+According to CDC, <b>Severe illness</b> means that a person with COVID-19 may require:
+<ul>
+	<li>hospitalization,</li>
+  <li>intensive care, or a</li>
+  <li>ventilator to help them breathe, or</li>
+  <li>they may even die.</li>
+</ul>
+{elseif $minority_groups.includes($eth)}
+As you have above risk factor(s), please <b>get a COVID-19 vaccine as soon as you can</b>. To get the vaccine information, please click the button below to subscribe.
+<br />
+<br />
+According to CDC, <b>Severe illness</b> means that a person with COVID-19 may require:
+<ul>
+	<li>hospitalization,</li>
+  <li>intensive care, or a</li>
+  <li>ventilator to help them breathe, or</li>
+  <li>they may even die.</li>
+</ul>
+{else}
+You don't have risk factor in terms of you age, race, and medical condition, but for your safe, you still want to get a COVID-19 vaccine as soon as you can.
+<br />
+<br />
+{/if}
+
+<br />
+The following steps can help reduce your risk of infecting COVID-19:
+<ul>
+	<li>Wear a mask, when you interact with others.</li>
+  <li>Limit your in-person interactions with other people as much as possible.</li>
+  <li>Keep space between yourself and others.</li>
+  <li>Avoid touching your eyes, nose, and mouth with unwashed hands.</li>
+  <li>Cover coughs and sneezes with a tissue or the inside of your elbow.</li>
+  <liClean high-touch surfaces and objects regularly.</li>
+  <li>If you start feeling sick and think you may have COVID-19, get in touch with your healthcare provider within 24 hours.</li>
+</ul>
+
+</script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-dark bg-primary justify-content-between">
+      <a class="navbar-brand">COVID-19 Risk Assessment Portal</a>
+      <div id="login_status"></div>
+    </nav>
+
+    <div id = "login_form" class="container">
+      <div class="row">
+        <div class="col-sm-2">
+          <label for="login_id">Enter Login Id:</label>
+        </div>
+        <div class="col-sm-2">
+          <input id="login_id">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-2">
+          <label for="password">Enter Password:</label>
+        </div>
+        <div class="col-sm-2">
+          <input type="password" id="password">
+        </div>
+      </div>
+      <div class="row">    
+        <div class="col-sm-2"> 
+          <button id="login_btn">Login</button>
+        </div>
+      </div>
+      <div class="alert alert-danger" id="login_status1">
+        <div class="row">    
+          <div id="login_msg" class="col-sm-10"> 
+            Please enter login id and password to access FHIR server
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="container" id="main_body">
+      <div class="row">
+        <div id="patient_search">
+          <br>        
+          <h3>
+          Assess Your Risk of COVID-19
+          </h3>
+          <br>
+          <label for="patient_id">To assess your risk of COVID-19, first, please enter your patient ID:</label>
+          <input id="patient_id">
+          <button id="find_patient_btn">Assess Risk</button>   
+        </div>    
+      </div>
+      <div class="row">
+        <div class="col-md-9">
+          <div id="demographics_card">
+            <div class="card">
+              <div class="card-header">
+                Patient Demographics 
+              </div>
+              <div class="card-body" id="demographics">
+              </div>
+              <div class="card-footer" id="results">
+              <p>
+               placeholder
+              </p>
+              
+              </div>
+              <button type="button" id="btn_subscribe" class="btn btn-info">Subscribe for updates on vaccinations (TextIt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-9">
+          <div id="detail_card">
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="status_msg"></div>
+  </body>
+</html>
+
+    <script type="text/javascript">//<![CDATA[
+
+
+
+
+
+
+
+  //]]></script>
+
+  <script>
+    // tell the embed parent frame the height of the content
+    if (window.parent && window.parent.parent){
+      window.parent.parent.postMessage(["resultsFrame", {
+        height: document.body.getBoundingClientRect().height,
+        slug: "5zrsdcag"
+      }], "*")
+    }
+
+    // always overwrite window.name, in case users try to set it manually
+    window.name = "result"
+  </script>
+
+
+</body>
+</html>
