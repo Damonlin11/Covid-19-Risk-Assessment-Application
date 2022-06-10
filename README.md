@@ -1,6 +1,6 @@
 # Covid-19-Risk-Assessment-Application
 
-This is a web-based application (written in Javascript) allowing patients to assess their risk in terms of their age, race/ethnicity, and medical conditions. The patient's data are retrieved from FHIR server through REST API. The app also alows patients to subscribe updates on vaccination on TextIt. Patient's data will be sent to TextIt and a new contact will be created via API. 
+This is a web-based application (written in Javascript) allowing patients to assess their risk in terms of their age, race/ethnicity, and medical conditions. The patient's data are retrieved from FHIR server through REST API. This app also allows patients to subscribe updates on vaccination on TextIt. Patient's data will be sent to TextIt and a new contact will be created via API. 
 
 Files: 
 1. HTML file (open on a browser)
